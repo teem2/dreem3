@@ -10,7 +10,7 @@ define.class('$base/node', function(require, exports, self){
 	var astdef = require('$parsers/onejsdef')
 
 	self.noise = require('$gl/glnoise')
-	self.pal = require('$gl/glpalette')
+	self.palette = require('$gl/glpalette')
 	self.shape = require('$gl/glshape')
 	self.math = require('$gl/glmath')
 	self.demos = require('$gl/gldemos')
