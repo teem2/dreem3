@@ -45,6 +45,7 @@ define(function (require, exports) {
 
 	exports.texture = require('$textures/noise.png');
 	exports.checkertex  = require('$textures/checker.png');
+	exports.crystaltex  = require('$textures/hex_tiles.png');
 
 	exports.fetch = function (pos) {
 		return texture.sample(pos)
@@ -70,6 +71,16 @@ define(function (require, exports) {
 		var texc = mod((vec2(gl_FragCoord.x, 1.0 - gl_FragCoord.y) + vec2(0.5)) / texture.size.xy, 1.0);
 
 		col.xyz += 0.03 * texture.sample(texc).xyz;
+
+		return col;
+	}
+	
+	exports.dithercrystal = function(col, time){
+		var texc = mod((vec2(gl_FragCoord.x, 1.0 - gl_FragCoord.y) + vec2(0.5)) / texture.size.xy, 1.0);
+var R = crystaltex.sample(mod(texc*0.2,1.0)).x * crystaltex.sample(mod(vec2(0,time*0.12314) +texc.yx*0.625123,1.0)).y;
+R = 1.0- R;
+R = R*R*R;
+		col.xyz *=  0.6+R;
 
 		return col;
 	}

@@ -1,7 +1,7 @@
 <composition>
 	<classes>
 		
-		<class name="connectorpoint" extends="view" bordercolor="rgba(200,200,255,255)" bgcolor="rgba(120,120,120,255)" cornerradius="10,10,0,0" width="20" height="20" borderwidth="2">
+		<class name="connectorpoint" extends="view" bordercolor="rgba(200,200,255,255)" bgcolor="rgba(85,85,128,255)" cornerradius="10,10,0,0" width="20" height="20" borderwidth="2">
 			<attribute name="bgcolor" motion="linear" duration="0.1"/>
 			<attribute name="bordercolor" motion="linear" duration="0.1"/>
 			<attribute name="connectiontype" type="string" value="string"/>	
@@ -9,10 +9,10 @@
 				this.bgcolor=vec4("rgba(200,200,255,255)")
 			</handler>
 			<handler event="mouseout">
-				this.bgcolor=vec4("rgba(120,120,120,255)")
+				this.bgcolor=vec4(0.3, 0.3, 0.5,1.0);
 			</handler>
 		</class>
-		<class name="inconnectorpoint" extends="view" bordercolor="rgba(200,200,255,255)" bgcolor="rgba(120,120,120,255)" cornerradius="0,0,10,10" width="20" height="20" borderwidth="2">
+		<class name="inconnectorpoint" extends="view" bordercolor="rgba(200,200,255,255)" bgcolor="rgba(85,85,128,255)" cornerradius="0,0,10,10" width="20" height="20" borderwidth="2">
 			<attribute name="bgcolor" motion="linear" duration="0.1"/>
 			<attribute name="bordercolor" motion="linear" duration="0.1"/>
 			<attribute name="connectiontype" type="string" value="string"/>	
@@ -20,7 +20,8 @@
 				this.bgcolor=vec4("rgba(200,200,255,255)")
 			</handler>
 			<handler event="mouseout">
-				this.bgcolor=vec4("rgba(120,120,120,255)")
+				this.bgcolor=vec4(0.3, 0.3, 0.5,1.0);
+
 			</handler>
 		</class>
 		<class name="flowblock" extends="view" width="150"  height="100" cornerradius="16,16,16,16" borderwidth="2" bgcolor="rgba(255,255,255,150)" bordercolor="rgba(200,200,255,255)"> 	
@@ -28,6 +29,16 @@
 			<attribute name="bordercolor" motion="linear" duration="0.1"/>
 			<attribute name="cornerradius" motion="linear" duration="0.1"/>
 			
+			<method name="bg.bgcolorfn" args="tex,	dist" >
+			
+				var vig = 0.7 + 0.3*(sin(tex.y*PI)*sin(tex.x*PI))
+				var c = 1.0-noise.cell3v(vec3(gl_FragCoord.x*0.14,gl_FragCoord.y*0.14, time)).x;
+				vig = (c*0.2 + 0.8) * vig;
+				var fgcolor = vec4(0.2, 0.0, 0.5, bgcolor.a);
+				return  palette.dither(mix(fgcolor, bgcolor, vig));
+			
+			</method>
+
 			<handler event="init">
 				this.normalbgcolor = this.bgcolor;
 				this.normalbordercolor = this.bordercolor;
@@ -167,7 +178,19 @@
 
 			
 			<view name="flow" x="100" y="100"cornerradius="20" bgcolor="rgba(40,40,40,250)" width="1000"  height="700" clipping="true" >
-				<text text="Composition: MovieGrid" color="rgba(255,255,255,40)" fontsize="30" y="36" x="16"></text>
+				
+				<method name="bg.bgcolorfn" args="tex,	dist" >
+			
+				var vig = 0.2 + 0.8*(sin(tex.y*PI)*sin(tex.x*PI))
+				var c = 1.0-noise.cell3v(vec3(gl_FragCoord.x*0.114,gl_FragCoord.y*0.114, time*0.8124)).x;
+				vig = (c*0.5 + 0.8) * vig;
+				var fgcolor = vec4(0.3, 0.3, 0.3, bgcolor.a);
+				return  palette.dither(mix(fgcolor, bgcolor, 1-vig));
+			
+			</method>
+			
+			
+				<text text="Composition: MovieGrid" color="black" fontsize="30" y="36" x="16"></text>
 
 				<spline x="${this.parent.b1.x + 150}" y="${this.parent.b1.y+25}" bgcolor="#f97" position="absolute" p1="100,0" p2="${vec2(this.parent.b2.x-this.parent.b1.x-250, this.parent.b2.y-this.parent.b1.y)}" p3="${vec2(this.parent.b2.x-this.parent.b1.x-150, this.parent.b2.y-this.parent.b1.y)}"  linewidth="11" linecolor="rgba(190,190,255,255)"></spline>
 				<spline x="${this.parent.b2.x + 150}" y="${this.parent.b2.y+25}" bgcolor="#9f7" position="absolute" p1="100,0" p2="${vec2(this.parent.b3.x-this.parent.b2.x-250, this.parent.b3.y-this.parent.b2.y)}" p3="${vec2(this.parent.b3.x-this.parent.b2.x-150, this.parent.b3.y-this.parent.b2.y)}"  linewidth="11" linecolor="rgba(190,190,255,255)"></spline>
