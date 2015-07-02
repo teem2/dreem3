@@ -41,9 +41,14 @@ define.class('$base/node', function (require, exports, self){
 
 		var click_count = 0
 
+		var activedown = 0;
 		window.addEventListener('mousedown', function(e){
 			var now = Date.now()
-
+			if (activedown == 0)
+			{
+				window.setCapture();
+			}
+			activedown++;
 			if(this.last_click !== undefined && now - this.last_click < this.clickspeed){
 				click_count ++
 			}
@@ -62,6 +67,11 @@ define.class('$base/node', function (require, exports, self){
 		}.bind(this))
 
 		window.addEventListener('mouseup', function(e){
+			this.activedown--;
+			if (this.activedown == 0)
+			{
+				window.releaseCapture();
+			}
 
 			this.x = e.pageX// / this.ratio//* window.devicePixelRatio
 			this.y = e.pageY// / this.ratio //* window.devicePixelRatio
