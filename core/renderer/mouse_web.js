@@ -19,6 +19,8 @@ define.class('$base/node', function (require, exports, self){
 	
 	self.ratio = 0
 
+	self.activedown = 0;
+		
 	self.clickspeed = 350
 
 	self.atConstructor = function(){
@@ -41,14 +43,13 @@ define.class('$base/node', function (require, exports, self){
 
 		var click_count = 0
 
-		var activedown = 0;
 		window.addEventListener('mousedown', function(e){
 			var now = Date.now()
-			if (activedown == 0)
+			if (this.activedown == 0)
 			{
 				window.setCapture();
 			}
-			activedown++;
+			this.activedown++;
 			if(this.last_click !== undefined && now - this.last_click < this.clickspeed){
 				click_count ++
 			}
