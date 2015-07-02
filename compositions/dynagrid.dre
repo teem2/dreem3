@@ -140,9 +140,9 @@
 			<attribute name="spacingy" type="float" value="1" />
 			<require name='data' src='$compositions/dynagrid/top_movies.json'/>
 			<attribute name="offset" type="float" value="0" />
-			<attribute name="xsizecalc" type="float" value="${this.parent.xsize + this.parent.spacing}" />
+			<!--attribute name="xsizecalc" type="float" value="${this.parent.xsize + this.parent.spacing}" />
 			<handler event="xsizecalc">
-			</handler>
+			</handler-->
 			<attribute name="ysize" type="float" value="100" />
 			<method name='render'>
 				var res = data.searchResponse.results

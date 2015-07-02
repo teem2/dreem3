@@ -2,12 +2,14 @@
 
 define.class('$base/node', function(require, exports, self){
 
-	var Texture = require('$gl/gltexture')
+	var GLTexture = require('$gl/gltexture')
 	var OneJSParser =  require('$parsers/onejsparser')
 	var GLSLGen = require('$gl/glslgen')
 	var gltypes = require('$gl/gltypes')
 	var dump = require('$parsers/astdumper')
 	var astdef = require('$parsers/onejsdef')
+
+	self.default_texture = GLTexture.fromArray(new Float32Array(4*4*4), 4,4)
 
 	self.noise = require('$gl/glnoise')
 	self.palette = require('$gl/glpalette')
@@ -743,6 +745,9 @@ define.class('$base/node', function(require, exports, self){
 			// lets do the texture slots correct
 			if(!gltex){
 				gltex = texture.createGLTexture(gl, texid, texinfo)
+				if(!gltex){
+					gltex = this.default_texture.createGLTexture(gl, texid, texinfo)
+				}
 			}
 			else{
 				gl.activeTexture(gl.TEXTURE0 + texid)

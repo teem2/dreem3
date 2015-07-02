@@ -29,7 +29,6 @@ define.class('./sprite_base', function (require, exports, self) {
 		return bgcolor
 	}
 
-
 	exports.nest('Bg', GLShader.extend(function(exports, self){
 		self.texture = new GLTexture()
 
@@ -56,10 +55,12 @@ define.class('./sprite_base', function (require, exports, self) {
 
 			//dump = dist*0.01
 			//dist += noise.s2d(mesh*32)*5
+			var bgcolor =  bgcolorfn(mesh.xy, dist)
+			if(borderwidth < 0.001) return bgcolor
 			var clamped = 1.0 - (clamp(dist, -0.5, 0.5) + 0.5)
 			if (clamped == 0.) discard
 			var b = clamp(-dist-(borderwidth-0.5), 0., 1.)
-			var precol = mix(bordercolor, bgcolorfn(mesh.xy, dist), b);
+			var precol = mix(bordercolor, bgcolor, b);
 			var col =  precol //pal.dither(precol);
 			col.a *= clamped * opacity
 			return col

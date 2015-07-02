@@ -119,7 +119,11 @@ define.class(function(require, exports, self){
 		var samplerid = texinfo.samplerid
 
 		if(this.image && this.image[samplerid]){
-			var gltex =  this[samplerid] = this.image[samplerid]
+			this[samplerid] = this.image[samplerid]
+		}
+
+		if(this[samplerid]){
+			var gltex = this[samplerid]
 			gl.activeTexture(gl.TEXTURE0 + texid)
 			gl.bindTexture(gl.TEXTURE_2D, gltex)
 			return gltex
