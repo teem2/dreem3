@@ -323,17 +323,17 @@ define.class('./sprite_base', function (require, exports, self) {
 				if (this.hasListeners('click') || this.hasListeners('mousedown') || this.hasListeners('mouseout') ||  this.hasListeners('mouseover')|| this.hasListeners('mouseup') || this.hasListeners('mousemove') ||this.hasListeners('scroll')){
 					this.effectiveguid = this.interfaceguid;
 					
-					var r = ((this.effectiveguid &255)) / 255.0
-					var g = ((this.effectiveguid>>8) &255) / 255.0
-					var b = ((this.effectiveguid>>16) &255) / 255.0
-					bg._guid = vec4(r,g,b,1.0);					
-					bg.drawGuid()
+					
 					
 				}	
 				else{
 					this.effectiveguid = this.parent.effectiveguid;
 				}
-			
+			var r = ((this.effectiveguid &255)) / 255.0
+					var g = ((this.effectiveguid>>8) &255) / 255.0
+					var b = ((this.effectiveguid>>16) &255) / 255.0
+					bg._guid = vec4(r,g,b,1.0);					
+					bg.drawGuid()
 			}
 			else{
 				bg.time = (this.screen.time%100000)*0.001
