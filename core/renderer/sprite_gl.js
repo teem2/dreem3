@@ -280,7 +280,7 @@ define.class('./sprite_base', function (require, exports, self) {
 	
 	self.drawContent = function (renderstate) {
 		//mat4.debug(this.orientation.matrix);
-		if (this.texturecache == false || this.texturecache == true && this.dirty) {
+		if (this.texturecache == false || (this.texturecache == true && this.dirty)) {
 			
 			var bg = this.bg
 			var fg = this.fg
@@ -322,20 +322,31 @@ define.class('./sprite_base', function (require, exports, self) {
 			else if (renderstate.drawmode === 1) {			
 				if (this.hasListeners('click') || this.hasListeners('mousedown') || this.hasListeners('mouseout') ||  this.hasListeners('mouseover')|| this.hasListeners('mouseup') || this.hasListeners('mousemove') ||this.hasListeners('scroll')){
 					this.effectiveguid = this.interfaceguid;
+					
+					var r = ((this.effectiveguid &255)) / 255.0
+					var g = ((this.effectiveguid>>8) &255) / 255.0
+					var b = ((this.effectiveguid>>16) &255) / 255.0
+					bg._guid = vec4(r,g,b,1.0);					
+					bg.drawGuid()
+					
 				}	
 				else{
 					this.effectiveguid = this.parent.effectiveguid;
 				}
-				var r = ((this.effectiveguid &255)) / 255.0
-				var g = ((this.effectiveguid>>8) &255) / 255.0
-				var b = ((this.effectiveguid>>16) &255) / 255.0
-				bg._guid = vec4(r,g,b,1.0);					
-				bg.drawGuid()
+			
 			}
 			else{
 				bg.time = (this.screen.time%100000)*0.001
 				fg.time = (this.screen.time%100000)*0.001
-
+				//console.log(this.constructor.name, bg);
+				
+				if (bg.shader && bg.shader.texlocs["frame_texture_IL_AL_SC_TC"] !== undefined){
+					//console.log("has frame texture!");
+					renderstate.swapToNewTarget(bg);
+				}
+				else{
+					
+				}
 				bg.draw()
 				fg.draw()
 				//console.log(bg)

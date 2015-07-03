@@ -159,6 +159,7 @@ define.class('./screen_base', function (require, exports, self) {
 		for (var i = 0; i < this.children.length; i++) {
 			this.children[i].draw(this.renderstate)
 		}
+		this.renderstate.finish(this.device);
 	}
 
 	self.readGuidTimeout = function () {
@@ -321,6 +322,8 @@ define.class('./screen_base', function (require, exports, self) {
 		}.bind(this)
 
 		this.device = new GLDevice()
+		console.log(this.device.size);
+		this.renderstate.configure(this.device, this.device.size[0], this.device.size[1]);
 		this.device.atRedraw = function (time) {
 			this.draw(time / 1000.)
 		}.bind(this)

@@ -1,0 +1,66 @@
+<composition>
+	<classes>
+		<class name="testbutton" extends="view" width="10" height="10">
+			<text text="sometext"></text>
+		</class>
+		<class name="image" extends="view" width="10" bgimage="texture.jpg">
+		</class>
+		<class name="inputtext" extends="text" text="editable" fontsize="20" y="20"></class>
+		
+		<class name="subtext" extends="text" text="This text originates from a classlib." fontsize="20">
+			<text text="subsub" x="10" y="10" fontsize="10" />
+		</class>
+		<class name="somebuttons" extends="view">
+			<button width="150" height="20" bgcolor="purple"  x="40" y="200"/> 
+			<button width="150" height="20" bgcolor="purple"  x="40" y="250"/> 
+			<button width="150" height="20" bgcolor="purple"  x="40" y="300"/> 
+			<button width="150" height="20" bgcolor="purple"  x="40" y="350"/>
+		</class>
+		<class name="slidercontainer" extends="view">
+			<button y="40" x="-20"/>
+		</class>
+		<class name="scrollcontainer" extends="view" border="1" bordercolor="white" width="100%" height="100%" bgcolor="blue"></class>
+						<class name="sliderflower" extends="view">
+				<slidercontainer x="0" y="0"/>
+				<slidercontainer x="0" y="0"  rotation="60"/>
+				<slidercontainer x="0" y="0" rotation="120"/>
+				<slidercontainer x="0" y="0"  rotation="180"/>
+				<slidercontainer x="0" y="0" rotation="240"/>
+				<slidercontainer x="0" y="0" rotation="300"/>
+				</class>
+<class name="thing" extends="view" width="250" height="250" x="200" y="300" bgcolor="rgba(255,255,255,100)" cornerradius="20">
+					<method name="bg.bgcolorfn" args="tex, dist">
+					
+						var C = frame_texture.sample(gl_FragCoord.xy);
+						C+=frame_texture.sample(gl_FragCoord.xy+ vec2(1.0,0.0));
+						C+=frame_texture.sample(gl_FragCoord.xy+ vec2(-1.0,0.0));
+						C+=frame_texture.sample(gl_FragCoord.xy+ vec2(0.0,1.0));
+						C+=frame_texture.sample(gl_FragCoord.xy+ vec2(0.0,-1.0));
+						C/=5.0;
+						return C/2.0 + vec4(1.0,0.0,1.0,1.0)/2.0;
+					</method>
+				
+				
+				</class>
+	</classes>
+	<screens>
+	
+		<screen name="browser" bgcolor="#808080">
+			<view>
+				<sliderflower x="400" y="400" />
+				<sliderflower x="400" y="600" opacity="0.8" rotation="22"/>
+				<view x="740" y="600" rotation="30" width="250" height="250" clipping="true" bgcolor="rgba(10,10,10,50)" opacity="0.8" borderwidth="0" bordercolor="transparent" cornerradius="vec4(20,20,20,20)">
+					<button x="30" y="100" bgcolor="white" bordercolor="black" height="50" opacity="0.8" text="button 1" rotation="0" src="/textures/noise.png">
+						<handler event="click">
+						console.log("clicked button 1!")
+						</handler>
+					</button>
+					
+				</view>
+				<thing/>
+			</view>			
+			<method name='init'>	
+			</method>
+		</screen>
+	</screens>
+</composition>

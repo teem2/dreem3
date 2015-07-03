@@ -10,6 +10,8 @@ define.class('$base/node', function(require, exports, self){
 	var astdef = require('$parsers/onejsdef')
 
 	self.default_texture = GLTexture.fromArray(new Float32Array(4*4*4), 4,4)
+	
+	self.frame_texture = GLTexture.fromArray(new Float32Array(4*4*4), 4,4)
 
 	self.noise = require('$gl/glnoise')
 	self.palette = require('$gl/glpalette')
