@@ -467,8 +467,10 @@ define.class(function(require, constructor){
 	this.diff = function(other){
 		if(!other) return this
 		// check if we changed class
-		if(define.classHash(this.constructor) === define.classHash(other.constructor)){
-			// if they are the same, we can just return the other
+		
+		if(define.classHash(this.constructor) === define.classHash(other.constructor) &&
+			JSON.stringify(this.constructor_args) === JSON.stringify(other.constructor_args)){
+			console.log("REUSIN")
 			return other
 		}
 
