@@ -75,7 +75,7 @@ define.class(function(require, exports, self){
 	self.size = vec2(0, 0)
 
 	// well lets do it like this.
-	self.sample2 = function(x, y){ return sample(vec2(x, y)) }	
+	self.sample2 = function(x, y){ return sample(vec2(x, y)) }
 	self.sample = function(v){
 		return texture2D(this, v, {
 			MIN_FILTER: 'LINEAR',
@@ -85,7 +85,7 @@ define.class(function(require, exports, self){
 		})
 	}
 
-	self.flipped2 = function(x,y){ return flipped(vec2(x,y))}
+	self.flipped2 = function(x,y){ return flipped(vec2(x,y)) }
 	self.flipped = function(v){
 		return texture2D(this, vec2(v.x, 1. - v.y), {
 			MIN_FILTER: 'LINEAR',
@@ -145,8 +145,8 @@ define.class(function(require, exports, self){
 		}
 		else{
 			return undefined
-	//		throw new Error('Invalid texture')
 		}
+		
 		gltex.updateid = this.updateid
 		// set up sampler parameters
 		gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl[samplerdef.MIN_FILTER])
@@ -156,7 +156,7 @@ define.class(function(require, exports, self){
 		gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl[samplerdef.WRAP_T])
 
 		this[samplerid] = gltex
-		return gltex		
+		return gltex
 	}
 
 	self.updateGLTexture = function(gl, gltex){
@@ -177,7 +177,7 @@ define.class(function(require, exports, self){
 		var width = this.size[0], height = this.size[1]
 
 		var fb = this.frame_buf = gl.createFramebuffer()
-		var tex = this.AL_IL_SC_TC = gl.createTexture()		
+		var tex = this.AL_IL_SC_TC = gl.createTexture()
 		var type = this.type
 
 		// our normal render to texture thing
@@ -188,11 +188,11 @@ define.class(function(require, exports, self){
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
 		var buf_type = gl.RGB
-		if(type.indexOf('luminance') != -1 ){
+		if(type.indexOf('luminance') != -1){
 			buf_type = gl.LUMINANCE
-			if(type.indexOf('alpha') != -1 ) buf_type = gl.LUMINANCE_ALPHA
+			if(type.indexOf('alpha') != -1) buf_type = gl.LUMINANCE_ALPHA
 		}
-		else if(type.indexOf('alpha') != -1 ) buf_type = gl.ALPHA
+		else if(type.indexOf('alpha') != -1) buf_type = gl.ALPHA
 		else if(type.indexOf('rgba') != -1) buf_type = gl.RGBA
 
 		var data_type = gl.UNSIGNED_BYTE

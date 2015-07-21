@@ -48,24 +48,22 @@ define.class('./sprite_base', function (require, exports, self) {
 		self.opacity = 0.0;
 		self.time = 0.1
 
-
 		self.bgcolorfn = Sprite.plaincolor 
 		self.color = function(){
 			var dist = shape.roundedrectdistance(sized, width, height, radius.r, radius.a, radius.g, radius.b)
-
 			//dump = dist*0.01
 			//dist += noise.s2d(mesh*32)*5
 			var bgcolor =  bgcolorfn(mesh.xy, dist)
 			if(borderwidth < 0.001) return bgcolor
 			var clamped = 1.0 - (clamp(dist, -0.5, 0.5) + 0.5)
 			if (clamped == 0.) discard
-			var b = clamp(-dist-(borderwidth-0.5), 0., 1.)
+			var b = clamp(-dist - (borderwidth-0.5), 0., 1.)
 			var precol = mix(bordercolor, bgcolor, b);
 			var col =  precol //pal.dither(precol);
 			col.a *= clamped * opacity
 			return col
 		}
-			
+
 		//var distfact = pow((1.0- 0.8*clamp(1.+dist*0.06,0.,1.)),0.4);
 		/*
 			var xs = 18.
@@ -76,7 +74,7 @@ define.class('./sprite_base', function (require, exports, self) {
 			var ns = noise.snoise3(x, y, 0.1*time)
 			bgcolor = vec4(pal.pal2(ns) + 0.5*(vec3(1.)*sin(-8*time + (length(mesh-.5)-.01*ns+ .001*noise.snoise3(x*1, y*1, 0.1*time))*2400)),1.)
 			*/
-/*
+			/*
 		self.color = function(){
 			var xs = 18.
 			var ys = 16.
@@ -89,7 +87,7 @@ define.class('./sprite_base', function (require, exports, self) {
 
 		self.color_blend = 'src_alpha * src_color + (1-src_alpha) * dst_color'
 			//self.color_blend = 'src_alpha * src_color + dst_color'
-		self.position = function (){
+		self.position = function(){
 			sized = vec2(mesh.x * width, mesh.y * height)
 			return vec4(sized.x, sized.y, 0, 1) * matrix
 		}
@@ -127,7 +125,7 @@ define.class('./sprite_base', function (require, exports, self) {
 				this.texturecache = false;
 				this.setDirty(true)
 			}
-		} 
+		}
 		else{
 			if(this.texturecache == false){ // only build if it doesn't already have a texture cache
 				this.texturecache = {
@@ -150,7 +148,7 @@ define.class('./sprite_base', function (require, exports, self) {
 		return this.orientation.invertedworldmatrix;
 	}
 	
-	self.recomputeMatrix = function () {
+	self.recomputeMatrix = function(){
 		
 		var o = this.orientation;
 		if (this.layout) {
@@ -180,7 +178,7 @@ define.class('./sprite_base', function (require, exports, self) {
 		this.matrixdirty = false;
 	}
 
-	self.init = function (obj) {
+	self.init = function (obj){
 		
 		this.orientation = {
 			rotation : vec3(0, 0, 0), // (or {0,0,0} for 3d rotation)
@@ -193,11 +191,12 @@ define.class('./sprite_base', function (require, exports, self) {
 		this.interfaceguid = exports.interfaceguid++;
 		this.screen.guidmap[this.interfaceguid] = this;
 
-		this.rotation =function(){
+		this.rotation = function(){
 			this.orientation.rotation[2] = this.rotation;
 			this.setDirty(true)
 			this.matrixdirty = true
 		}
+
 		this.y = function(){
 			this.orientation.translation[1] = this.y;
 			this.setDirty(true)
@@ -222,14 +221,14 @@ define.class('./sprite_base', function (require, exports, self) {
 		
 		// if we have a bgimage, we have to set our bgimage function to something
 		if(this.bgimage){
-			// lets make the thing fetch a texture.
+			// lets make the thing fetch a texture
 			this.bg.texture = new GLTexture()
 
 			if(this.bg.bgcolorfn === this.plaincolor){
 				this.bg.bgcolorfn = function(pos, dist){
-					var aspect = texture.size.y/texture.size.x
+					var aspect = texture.size.y / texture.size.x
 					var center = (1. - aspect) * .5
-					var sam = vec2(pos.x*aspect, pos.y)
+					var sam = vec2(pos.x * aspect, pos.y)
 					var col = texture.sample(sam)
 					if(sam.x< 0. || sam.x > 1.) col.a = 0.
 					return col
@@ -297,7 +296,7 @@ define.class('./sprite_base', function (require, exports, self) {
 				this.bg._height = this.layout.height? this.layout.height: this._height
 			}
 			else{
-					//console.log(this.layout.width);
+				//console.log(this.layout.width);
 				this.bg._width = this._width
 				this.bg._height = this._height
 			}
@@ -391,7 +390,7 @@ define.class('./sprite_base', function (require, exports, self) {
 
 			renderstate.matrix = prevmatrix;
 		}
-		this.screen.device.redraw()
+		//this.screen.device.redraw()
 	}
 
 	self.render = function(){

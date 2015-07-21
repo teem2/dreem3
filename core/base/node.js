@@ -17,31 +17,48 @@ define.class(function(require, constructor){
 		var args = this.constructor_args = Array.prototype.slice.call(arguments)
 		this.initFromConstructorArgs(args)
 	}
-	
+
 	this.initFromConstructorArgs = function(args){
+		var off = 0
 		for(var i = 0; i < args.length; i++){
 			var arg = args[i]
 			if(typeof arg === 'object' && Object.getPrototypeOf(arg) === Object.prototype){
 				this.initFromConstructorProps(arg)
 				continue
 			}
-			if(typeof arg === 'string'){
+			if(typeof arg === 'function'){
+				var prop = {}; prop[arg.name] = arg
+				this.initFromConstructorProps(prop)
+				continue
+			}
+			if(typeof arg === 'string' && i === 0){
+				off = 1
 				this.name = arg
 				continue
 			}
-			if(typeof arg === 'function'){
-				var prop = {}; prop[arg.name] = arg.name
-				this.initFromConstructorProps(prop)
+			if(typeof arg === 'number'){
+				var o = i - off
+				if(o === 0) this.x = arg
+				else if(o === 1) this.y = arg
+				else if(o === 2) this.w = arg
+				else if(o === 3) this.h = arg
+				continue
+			}
+			if(arg && arg.struct){
+				var o = i - off
+				if(o === 0) this.pos = arg
+				if(o === 1) this.size = arg
+				else this.bgcolor = arg
 				continue
 			}
 
 			if(Array.isArray(arg)){
 				this.initFromConstructorArgs(arg)
 			}
-			else{
+			else if(arg !== undefined && typeof arg === 'object'){
 				if(!this.children) this.children = []
 				this.children.push(arg)
-				var name = arg.name
+				var name = arg.name || arg.constructor && arg.constructor.classname
 				if(name !== undefined && !(name in this)) this[name] = arg
 			}
 		}		
@@ -86,7 +103,6 @@ define.class(function(require, constructor){
 
 	// render this node
 	this.render = function(){
-		return this
 	}
 
 	// Mixes in another class
@@ -445,6 +461,27 @@ define.class(function(require, constructor){
 	this.startMotion = function(key, value){
 		if(!this.screen) return false 
 		return this.screen.startMotion(this, key, value)
+	}
+
+	// lets diff ourselves and children
+	this.diff = function(other){
+		if(!other) return this
+		// check if we changed class
+		if(define.classHash(this.constructor) === define.classHash(other.constructor)){
+			// if they are the same, we can just return the other
+			return other
+		}
+
+		// otherwise we diff the children
+		var my_children = this.children
+		var other_children = other.children
+		if(!my_children) return this
+
+		for(var i = 0; i < my_children.length; i++){
+			my_children[i] = my_children[i].diff(other_children[i])
+		}
+
+		return this		
 	}
 
 	this.hideProperty(Object.keys(this))

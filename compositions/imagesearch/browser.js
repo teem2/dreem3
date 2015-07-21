@@ -1,12 +1,5 @@
-define.browser(function(screen, view){
-
+define.browser(function(require, screen, view, myview){
 	this.render = function(){return(
-		view("hello", {y:20},
-			function init(){
-				console.log('view initialized!')
-			},
-			view("test", {x:10, y:20})
-		)
+		myview()
 	)}
-
 })

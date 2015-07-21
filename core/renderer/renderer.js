@@ -1,18 +1,39 @@
 // Copyright 2015 Teem2 LLC, MIT License (see LICENSE)
 // Reactive renderer
 
-define.class(function(require, exports, self){
+define.class(function(require, exports){
 
 	var Node = require('$base/node')
 	
-	self.render = function(object, parent, globals, rerender){
-		// set up property binding values
-		Object.defineProperty(object, 'parent', {value:parent})
+	exports.defineGlobals = function(object, globals){
 		for(var key in globals){
 			Object.defineProperty(object, key, {value:globals[key]})
 		}
+	}
 
-		var recur 
+	exports.mergeChildren = function(object, children, globals){
+		// splat in the children
+		var objchildren = object.children
+		if(!objchildren) object.children = objchildren = []
+		if(Array.isArray(children))
+			objchildren.push.apply(object.children, children)
+		else objchildren.push(children)
+
+		// merge name
+		for(var i = 0; i < objchildren.length; i++){
+			// create child name shortcut
+			var child = objchildren[i]
+			var name = child.name || child.constructor.classname
+			if(name !== undefined && !(name in object)) object[name] = child
+		}
+	}
+
+	exports.render = function(object, parent, globals, rerender){
+		// set up property binding values
+		Object.defineProperty(object, 'parent', {value:parent})
+
+		exports.defineGlobals(object, globals)
+
 		// store the attribute dependencies
 		object.atAttributeGet = function(key){
 			// if we use an attribute that has a property binding, try to initialize it now
@@ -30,25 +51,15 @@ define.class(function(require, exports, self){
 		var children = object.render(parent)
 
 		object.atAttributeGet = undefined
-		
-		if(children){
-			if(!object.children) object.children = []
-			if(Array.isArray(children))
-				object.children.push.apply(object.children, children)
-			else object.children.push(children)
-		}
-
+			
+		if(children) exports.mergeChildren(object, children)
 
 		if(object.children) for(var i = 0; i < object.children.length; i++){
-			// create child name shortcut
-			var child = object.children[i]
-			var name = child.name
-			if(name !== undefined && !(name in object)) object[name] = child
-			this.render(child, object, globals, rerender)
+			this.render(object.children[i], object, globals, rerender)
 		}
 	}
 
-	self.connectWires = function(object, initarray){
+	exports.connectWires = function(object, initarray){
 		object.connectWires(initarray)
 		if(object.children) for(var i = 0; i < object.children.length; i++){
 			var child = object.children[i]
@@ -56,7 +67,7 @@ define.class(function(require, exports, self){
 		}
 	}
 
-	self.fireInit = function(node){
+	exports.fireInit = function(node){
 		// on demand attribute binding initializer
 		//node.atAttributeGet = function(key){
 		//	if(this.isBound(key)){
@@ -64,7 +75,9 @@ define.class(function(require, exports, self){
 		//		attr.bindfn()
 		//	}
 		//}
-		node.emit('init')
+		if(!node._init){
+			node.emit('init',1)
+		}
 
 		if(node.children) for(var i = 0; i < node.children.length; i++){
 			this.fireInit(node.children[i])
@@ -73,7 +86,7 @@ define.class(function(require, exports, self){
 		node.atAttributeGet = undefined
 	}
 
-	self.destroy = function(object, parent){
+	exports.destroy = function(object, parent){
 		// tear down all listener structures
 		var obj = object
 		while(obj){
@@ -102,7 +115,7 @@ define.class(function(require, exports, self){
 		}
 	}
 
-	self.dump = function(node, depth){
+	exports.dump = function(node, depth){
 		var ret = ''
 		if(!depth) depth = ''
 		ret += depth + node.name + ': ' + node.constructor.name

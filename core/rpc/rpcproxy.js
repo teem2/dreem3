@@ -79,7 +79,7 @@ define.class('$base/node', function(require, exports, self){
 	}
 
 	RpcProxy.bindSetAttribute = function(object, rpcid, bus){
-	// ok lets now wire our mod.vdom.onSetAttribute
+		// ok lets now wire our mod.vdom.onSetAttribute
 		Object.defineProperty(object, 'atAttributeSet', {
 			value: function(key, value){
 			if(!RpcProxy.isJsonSafe(value)){
@@ -122,7 +122,7 @@ define.class('$base/node', function(require, exports, self){
 
 	RpcProxy.isJsonSafe = function(obj, stack){
 		if(!obj) return true
-		if(typeof obj == 'function') return false
+		if(typeof obj === 'function') return false
 		if(typeof obj !== 'object') return true
 		if(!stack) stack = []
 		stack.push(obj)
@@ -140,128 +140,28 @@ define.class('$base/node', function(require, exports, self){
 		return true
 	}
 
-	RpcProxy.createFromDef = function(def, rpcid, rpcpromise){
-		var obj = new RpcProxy()
-	
-		Object.defineProperty(obj, '_rpcid', {value: rpcid})
-		Object.defineProperty(obj, '_rpcpromise', {value: rpcpromise})
+	RpcProxy.createFromStub = function(stub, baseproto, rpcid, rpcpromise){
+		var proxy = new RpcProxy()
+		proxy.name = stub.name || stub.constructor.name
+		Object.defineProperty(proxy, '_rpcid', {value: rpcid})
+		Object.defineProperty(proxy, '_rpcpromise', {value: rpcpromise})
 
-		// lets interpret the def
-		for(var key in def){
-			var prop = def[key]
-			if(typeof prop == 'object'){
-				if(prop.kind == 'attribute'){
-					// lets make an attribute
-					obj.attribute(key, {type: define.stringToType(prop.type), value:prop.value})
-				}
-				else if(prop.kind == 'method'){
-					// its a method, lets make an rpc interface for it
-					RpcProxy.defineMethod(obj, key)
-				}
-				else if(prop.kind == 'object'){
-					// lets check the sub object
-					var sub = prop.sub
-					if(sub.kind == 'single'){
-						obj[key] = RpcProxy.createFromDef(sub.self, rpcid + '.' + key, rpcpromise)
-					}
-					else if(sub.kind == 'multi'){
-						var multi = obj[key] = RpcMulti.createFromDef(sub.self, rpcid+'.'+key, rpcpromise)
-						for(var i = 0;i < sub.array.length;i++){
-							multi._array.push(RpcProxy.createFromDef(sub.array[i], rpcid+'.'+key+'['+i+']', rpcpromise))
-						}
-					}
-				}
-				else if(prop.kind == 'array'){
-					/* Not implemented */
-				}
-			}
-			else{ // we are a plain value
-				RpcProxy.defineProp(obj, key, prop)
-			}
-		}
-
-		return obj
-	}
-
-	RpcProxy.createFromDefs = function(defs, object, rpcpromise){
-		// lets set up our teem.bla base RPC layer (nonmultiples)
-		for(var key in defs){
-			var def = defs[key]
-			if(key.indexOf('.') !== -1){ // its a sub object property
-				var parts = key.split('.')
-				object[parts[0]][parts[1]] = RpcMulti.createFromDef(def, key, rpcpromise)
-			}
-			else{
-				object[key] = RpcProxy.createFromDef(def, key, rpcpromise)
-			}
-		}
-	}
-
-	RpcProxy.createRpcDefs = function(object, baseclass){
-		var rpcdefs = {}
-		for(var key in object){
-			var subobj = object[key]
-			if(subobj instanceof baseclass){
-				rpcdefs[key] = RpcProxy.createRpcDef(subobj, baseclass)
-			}
-		}
-		return rpcdefs
-	}
-
-	RpcProxy.createFromObject = function(object, baseclass){
-		var def = RpcProxy.createRpcDef(object, baseclass)
-		return RpcProxy.createFromDef(def)
-	}
-	
-	RpcProxy.createRpcDef = function(object, baseclass){
-		var baseproto
-		if(baseclass) baseproto = baseclass.prototype
-		var def = {}
-		for(var key in object){
+		for(var key in stub){
 			if(key.charAt(0) === '_' || baseproto && key in baseproto) continue
-			if(object.isAttribute(key)){ // we iz attribute
-				var cfg = object.getAttributeConfig(key)
-
-				var value = object['_' + key]
-				if(!RpcProxy.isJsonSafe(value)) value = null
-				if(cfg.type){
-					def[key] = {kind:'attribute', type: define.typeToString(cfg.type), value:value}
-				}
+			if(stub.isAttribute(key)){ // we iz attribute
+				proxy.attribute(key, stub.getAttributeConfig(key))
 			}
 			else{
-				var prop = object[key]
+				var prop = stub[key]
 
-				if(prop && prop.subRpcDef){
-					def[key] = {kind:'object', sub:prop.subRpcDef()}
-				}
-				else if(typeof prop == 'function'){
-					def[key] = {kind:'method'}
+				if(typeof prop == 'function'){
+					RpcProxy.defineMethod(proxy, key)
 				}
 				else if(Array.isArray(prop)){
-					if(RpcProxy.isJsonSafe(prop)) def[key] = prop
-					/*
-					// store an array
-					var array = []
-					def[key] = {kind:'array', array:array}
-					for(var i = 0;i < prop.length; i++){
-						item = prop[i]
-						if(item.subRpcDef){
-							array.push(item.subRpcDef())
-						}
-						else if(item instanceof baseclass){
-							array.push(RpcProxy.createRpcDef(item, baseclass))							
-						}
-					}
-					*/
-				}
-				else if(typeof prop == 'object'){
-					if(RpcProxy.isJsonSafe(prop)) def[key] = prop
-				}
-				else{
-					def[key] = prop
+					// its an array!
 				}
 			}
 		}
-		return def
+		return proxy
 	}
 })

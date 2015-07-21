@@ -57,6 +57,8 @@ define.class(function(require, exports, self){
 			if(!args['-nodreem'] && file.indexOf('dreem.js') !== -1){
 				return this.broadcast({type:'delay'})
 			}
+			file = file.slice(define.expandVariables(define.$root).length)
+			// ok lets rip off our 
 			this.broadcast({
 				type:'filechange',
 				file: file
@@ -139,6 +141,8 @@ define.class(function(require, exports, self){
 			var file = requrl.replace(/\_extlib\_/, define.expandVariables(define.$extlib))
 		}
 		else{
+			var idx = requrl.indexOf('?')
+			if(idx !== -1) requrl = requrl.slice(0, idx)
 			var file = path.join(define.expandVariables(define.$root), requrl)
 		}
 

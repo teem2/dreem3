@@ -1,37 +1,81 @@
 // Copyright 2015 this2 LLC, MIT License (see LICENSE)
 // this class
 
-define.class('$dreem/teem_base', function(require, exports, self, Base){
+define.class('$dreem/teem_base', function(require, exports, self, baseclass){
 
 	var Node = require('$base/node')
 	var RpcProxy = require('$rpc/rpcproxy')
 	var RpcMulti = require('$rpc/rpcmulti')
 	var RpcPromise = require('$rpc/rpcpromise')
 	var WebRTC = require('$rpc/webrtc')
-	var Renderer = require('$renderer/renderer')
+	var renderer = require('$renderer/renderer')
+	var BusClient = require('$rpc/busclient')
+	var Mouse = require('$renderer/mouse_$rendermode')
 
-	self.atConstructor = function(screen_factory){
+	self.doDiff = function(prev, next, name){
+		if(!prev) return next
+		if(define.classHash(prev.constructor) !== define.classHash(next.constructor)){ // lets replace it with the new one
+			return next
+		}
+		else{ // lets diff the children
+			// lets iterate the new, checking if the old has a different hash.
+			var next_children = next.children
+			var prev_children = prev.children
+			if(next_children) for(var i = 0; i < next_children.length; i++){
+				// lets check define.classHash
+				next_children[i] = this.doDiff(prev_children[i], next_children[i], name+'child['+i+']')
+			}
+			prev.children = next_children
+		}
+		console.log(name)
+		return prev
+	}
 
-		Base.prototype.atConstructor.call(this)
+	self.doRender = function(previous){
 
-		// web environment
-		var BusClient = require('$rpc/busclient')
-		var Mouse = require('$renderer/mouse_$rendermode')
+		// alright so, what we need to do is 
+		renderer.render(this.screen, null, {teem:this, screen:this.screen}, function rerender(what){
+			
+		}.bind(this))
+		
+		// lets go and render the screen
+		this.screen.mouse = new Mouse()
 
+		// okay! lets call diff on a childnode
+
+		if(previous){
+			this.screen = this.screen.diff(previous.screen)
+			//this.screen = this.doDiff(previous.screen, this.screen, 'screen')
+			//console.log(this.screen === previous.screen)
+		}
+
+
+		var wireinits = []
+		renderer.connectWires(this.screen, wireinits)
+
+		renderer.fireInit(this.screen)
+
+		for(var i = 0; i < wireinits.length; i++){
+			wireinits[i]()
+		}
+
+		// lets redraw screen
+		if(previous) this.screen.device.redraw()
+	}
+
+	self.createBus = function(){
+		
 		this.bus = new BusClient(location.pathname)
-		this.renderer = new Renderer()
-
+		
 		var rpcpromise = new RpcPromise(this.bus)
-		// lets put this on window just as  adebuggint tool
-		window.this = this
-
+		
 		this.bus.atMessage = function(msg){
 			if(msg.type == 'sessionCheck'){
 				if(this.session) location.href = location.href
 				if(this.session != msg.session){
-					this.bus.send({type:'connectBrowser'})
+					this.bus.send({type:'connectScreen'})
 				}
-			}
+			}  
 			else if(msg.type == 'webrtcOffer'){
 				if(msg.index != this.index){ // we got a webrtcOffer
 					this.webrtc_answer = WebRTC.acceptOffer(msg.offer)
@@ -64,8 +108,8 @@ define.class('$dreem/teem_base', function(require, exports, self, Base){
 					this.webrtc_answer.addCandidate(msg.candidate)
 				}
 			}
-			else if(msg.type == 'connectBrowserOK'){
-				RpcProxy.createFromDefs(msg.rpcdef, this, rpcpromise)
+			else if(msg.type == 'connectScreenOK'){
+				//RpcProxy.createFromDefs(msg.rpcdef, this, rpcpromise)
 
 				this.webrtc_offer = WebRTC.createOffer()
 				this.index = msg.index
@@ -78,89 +122,12 @@ define.class('$dreem/teem_base', function(require, exports, self, Base){
 					this.bus.send({type:'webrtcOffer', offer:offer, index: this.index})
 				}.bind(this)
 
-				var screen = screen_factory()
-
-				// lets wire the screen set attribetus
-				RpcProxy.bindSetAttribute(screen, 'screens.browser[0]', this.bus)
-
-				screen.mouse = new Mouse()
-
-				// recursive fire 'init' or spawn or whatnot
-				this.renderer.render(screen, null, {teem:this, screen:screen}, function rerender(what){
-					// ok lets re-render this thing
-					// how do we do this?
-					if(!what.initialized) what.initialized = true
-					else{
-						if(what.children) what.children.length = 0
-						this.renderer.render(what, what.parent, {teem:this, screen:screen}, rerender.bind(this))
-
-						var bindinits = []
-						for(var i = 0; i < what.children.length; i++){
-							var child = what.children[i]
-							this.renderer.connectWires(child, bindinits)
-							this.renderer.fireInit(child)
-						}
-
-						for(var i = 0; i<bindinits.length;i++){
-							bindinits[i]()
-						}
-					}
-					//if(what.children){
-					//	what.children.length = 0
-					//	what.children.push.apply(what.children,  what.render())
-					//}
-
-				}.bind(this))
-
-				var wireinits = []
-				this.renderer.connectWires(screen, wireinits)
-
-				this.renderer.fireInit(screen)
-
-				for(var i = 0; i<wireinits.length;i++){
-					wireinits[i]()
-				}
-
-				//$$(this.renderer.dump(root_obj))
-
-				if (false){
-					console.log("root_obj >>>");
-					console.dir(root_obj);
-					console.log("<<< root_ obj");
-				}
-				
-				/*
-				var redrawing = 0
-				var count = 0
-				function redraw(){
-					document.body.innerHTML = ''
-					redrawing = false
-
-					if(this.drawroot){
-						renderer.destroy(this.drawroot)
-					}
-					
-					var objroot = Node.createFromJSONML(root_jsonml)
-
-					var drawroot = renderer.render(objroot, {}, {this:this}, function(count){
-						if(!redrawing) window.requestAnimationFrame(redraw)
-						redrawing = true
-					}.bind(null, count++))
-					renderer.spawn(drawroot, {dom_node:document.body})
-
-					if(!this.drawroot) var init = true
-
-					this.drawroot = drawroot
-					this.objroot = objroot
-					if(init) this.objroot.on_init.emit()
-				}
-				redraw()*/
-
+				this.doRender()
 			}
-			else if(msg.type == 'join'){
-				var obj = RpcProxy.decodeRpcID(this, msg.rpcid)
-				if(!obj) console.log('Cannot find '+msg.rpcid+' on join')
-				else obj.createIndex(msg.index, msg.rpcid, rpcpromise)
+			else if(msg.type == 'connectScreen'){
+				//var obj = RpcProxy.decodeRpcID(this, msg.rpcid)
+				//if(!obj) console.log('Cannot find '+msg.rpcid+' on join')
+				//else obj.createIndex(msg.index, msg.rpcid, rpcpromise)
 			}
 			else if(msg.type == 'attribute'){
 				var obj = RpcProxy.decodeRpcID(this, msg.rpcid)
@@ -177,5 +144,45 @@ define.class('$dreem/teem_base', function(require, exports, self, Base){
 				rpcpromise.resolveResult(msg)
 			}
 		}.bind(this)
+	}
+
+	self.atConstructor = function(){
+		var previous = define.teemClient
+		define.teemClient = this
+
+		if(previous){
+			this.reload = (previous.reload||0)+1
+		}
+
+		// how come this one doesnt get patched up?
+		baseclass.prototype.atConstructor.call(this)
+
+		// web environment
+		if(previous) this.bus = previous.bus
+		else this.createBus()
+
+		window.teem = this
+
+		//ooookay. so. lets 'render' ourselves to spawn up the first level 
+		var composition = this.render()
+
+		// lets see which objects need to be RPC-proxified
+		for(var i = 0; i < composition.length; i++){
+			// ok so as soon as we are stubbed, we need to proxify the object
+			var obj = composition[i]
+			if(obj.constructor.stubbed){ // we are a stubbed out class
+				composition[i] = RpcProxy.createFromStub(obj)
+			}
+			else{
+				renderer.defineGlobals(obj, {teem:this})
+			}
+		}
+
+		// splat our children into the teem object
+		renderer.mergeChildren(this, composition)
+		// alright now we find the screen we wanna render somehow
+		this.screen = this.screens.browser
+
+		if(previous) this.doRender(previous)
 	}
 })

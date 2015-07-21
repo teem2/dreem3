@@ -1,7 +1,7 @@
 // Copyright 2015 Teem2 LLC, MIT License (see LICENSE)
 // teem class
 
-define.class('$base/node', function(require, exports, self, Base){
+define.class('$base/node', function(require, exports, self, baseclass){
 
 	self.atConstructor = function(){
 		this._intervals = []

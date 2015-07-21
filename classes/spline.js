@@ -41,6 +41,10 @@ define.class('$renderer/sprite_$rendermode', function(self){
 	self.bg.shapefn = function(v){
 		return (sin(v)*.75+0.75)
 	}
+	//self.bg.dump = 1
+	self.bg.scale = function(){
+		return 4.5
+	}
 
 	self.bg.color3 = function(){
 		var flowxy= vec2(bezierlen, mesh.side)
@@ -48,10 +52,12 @@ define.class('$renderer/sprite_$rendermode', function(self){
 		var flow1 = (shapefn(slide)+1.)*0.25-.35
 		var flow2 = (shapefn(slide+.25*PI)+1.)*0.25
 		
-		var hm = sin(PI*(mesh.side+.5))- flow2 + flow1*.3 * noise.noise2d(1*flowxy)
+		var hm = sin(PI*(mesh.side+.5))- flow2 + flow1*.3 * noise.noise2d(scale()*flowxy)
+
+		///dump = hm
 
 		var norm = vec2(dFdx(hm),  dFdy(hm))
-		norm = math.rotate2d(norm, -.75*PI)
+		norm = math.rotate2d(norm, time)
 		var lightdot = dot(norm, gl_FragCoord.xy*0.015) 
 		var ambient = 0.1
 	//	dbg = hm
@@ -89,9 +95,6 @@ define.class('$renderer/sprite_$rendermode', function(self){
 	//self.bg.dump = 1
 	self.bg.position = function(){
 		var npos = math.bezier2d(p0, p1, p2, p3, mesh.pos);
-		
-		var rx = (npos.x + mesh.side * -npos.w * linewidth);
-		var ry = (npos.y + mesh.side * npos.z * linewidth);
 
 		var last = math.bezier2d(p0, p1, p2, p3, 0.)
 		bezierlen = 0.
@@ -102,6 +105,11 @@ define.class('$renderer/sprite_$rendermode', function(self){
 			last = mypos
 			if(i >= step) break
 		}
+
+		//linewidth*=sin(time + bezierlen*0.4)*10.
+		var rx = (npos.x + mesh.side * -npos.w * linewidth);
+		var ry = (npos.y + mesh.side * npos.z * linewidth);
+
 
 		return vec4(rx,ry, 0, 1) * matrix
 	}

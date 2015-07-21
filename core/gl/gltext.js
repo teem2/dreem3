@@ -643,6 +643,12 @@ define.class('$gl/glshader', function(require, exports, self){
 
 		mesh.distance = glyphy_sdf(pos, nominal_size, atlas_pos) //+ noise.noise3d(vec3(glyph.x, glyph.y, time))*0.6
 		mesh.scaling = m
+
+		if(mesh.tag.x == 67.){
+			mesh.fgcolor = 'blue'
+		}
+
+		//return mix(vec4(0.),'green',1.-mesh.distance)
 		//mesh.outline = true
 		//dump = mesh.distance
 		var exit = paint(pos, dpdx, dpdx, m)

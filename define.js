@@ -24,7 +24,7 @@
 	define.$build = "$root/build"
 	define.$compositions = "$root/compositions"
 	define.$tests = '$root/tests'
-	define.$fonts = '$root/fonts'	
+	define.$fonts = '$root/fonts'
 	define.$textures = "$root/textures"
 
 	// directory structure variables
@@ -38,6 +38,10 @@
 	define.$rpc = '$core/rpc'
 	define.$server = '$core/server'
 	define.$animation = '$core/animation'
+
+	define.local_classes = {}
+
+	define.reload_id = 0
 
 	// copy configuration onto define
 	if(typeof config_define == 'object') for(var key in config_define){
@@ -63,6 +67,13 @@
 		var m = file.match(/\.([^.\/]+)($|\?)/)
 		if(!m) return ''
 		return m[1]
+	}
+
+	define.fileBase = function(file){
+		var fn = define.fileName(file)
+		var idx = fn.lastIndexOf('.')
+		if(idx !== -1) return fn.slice(0, idx)
+		return fn
 	}
 
 	define.cleanPath = function(path){
@@ -149,6 +160,8 @@
 		return require
 	}
 
+	define.require = define.localRequire('','root')
+
 	define.profile = function(times, cb){
 		var bs = Date.now()
 		for(var i = 0; i < times; i++) cb(i)
@@ -163,6 +176,7 @@
 
 	define.debug = true
 
+
 	// lamo hash. why doesnt js have a really good one built in hmm?
 	define.cheapHash = function(str){
 		if(typeof str !== 'string') return 0
@@ -172,11 +186,52 @@
 		return hash >>> 0
 	}
 
-	define.builtinClassArgs = {
-		exports:1, module:2, require:3, self:4, proto:4, constructor:1, base:5
+	// unique hash is simply a string hashtable
+	var unique_hash_tab = {}
+	var unique_hash_id = 1
+	define.uniqueHash = function(str){
+		var id = unique_hash_tab[str]
+		if(id) return id
+		return unique_hash_tab[str] = unique_hash_id++
 	}
 
-	define.applyBody = function(body, Constructor, base, require){
+	// module hash hashes a module and all its dependencies
+	define.moduleHash = function(module){
+		if(typeof module === 'string') module = define.module[module]
+		if(!module.unique_hash){
+			var hash = define.uniqueHash(module.factory.body?module.factory.body.toString():module.factory.toString())
+			var deps = module.factory.deps
+			if(deps) for(var i = 0; i < deps.length; i++){
+				hash += '_'+ this.moduleHash(define.module[deps[i]])
+			}
+			module.unique_hash = hash
+		}
+		return module.unique_hash
+	}
+
+	// object hash hashes a class and all its module dependencies
+	define.classHash = function(cls){
+		var hash = cls.unique_hash || ''
+		if(hash) return hash
+
+		var proto = cls.prototype
+		while(proto){
+			var mod = proto.constructor.module
+			if(mod){
+				hash += '_'+this.moduleHash(mod)
+			}
+			if(proto.constructor.body) hash += '_' + define.uniqueHash(proto.constructor.body.toString())
+			proto = Object.getPrototypeOf(proto)
+		}
+		Object.defineProperty(cls, 'unique_hash', {value:hash})
+		return hash
+	}
+
+	define.builtinClassArgs = {
+		exports:1, module:2, require:3, self:4, proto:4, constructor:1, baseclass:5
+	}
+
+	define.applyBody = function(body, Constructor, baseclass, require){
 		if(typeof body == 'object' && body){
 			for(var key in body) Constructor.prototype[key] = body[key]
 			return
@@ -200,7 +255,7 @@
 					args[i] = require
 				}
 				else if(builtin === 4) args[i] = Constructor.prototype
-				else if(builtin === 5) args[i] = base
+				else if(builtin === 5) args[i] = baseclass
 			}
 			else{
 				if(!require) throw new Error('Can only use fast-require classes on a file-class')
@@ -208,14 +263,14 @@
 			}
 		}
 
-		Object.defineProperty(Constructor, 'bodyhash', {value:define.cheapHash(body.toString())})
+		Object.defineProperty(Constructor, 'body', {value:body})
 
 		return body.apply(Constructor.prototype, args)
 	}
 
 	define.EnvironmentStub = function(dep){ this.dep = dep }
 
-	define.makeClass = function(base, body, require, module){
+	define.makeClass = function(baseclass, body, require, module){
 
 		var stubbed
 		if(body && body.environment !== undefined && body.environment !== define.$environment){
@@ -249,14 +304,14 @@
 		if(define.debug){
 			var fnname
 			if(module){
-				fnname = define.fileName(module.filename).replace(/\.js/g,'').replace(/\./g,'_').replace(/\//g,'_')
+				fnname = define.fileBase(module.filename).replace(/\./g,'_')//.replace(/\.js/g,'').replace(/\./g,'_').replace(/\//g,'_')
 			}
 			else{
 				// lets make an fnname based on our callstack
 				var origin = new Error().stack.split(/\n/)[3].match(/\/([a-zA-Z0-9\.]+)\:(\d+)\:\d+\)/)
 				if(!origin || origin[1] === 'define.js'){
 					fnname = 'extend'
-					if(base && base.prototype.constructor) fnname += '_' + base.prototype.constructor.name
+					if(baseclass && baseclass.prototype.constructor) fnname += '_' + baseclass.prototype.constructor.name
 				}
 				else fnname = origin[1].replace(/\.js/g,'').replace(/\./g,'_').replace(/\//g,'_') + '_' + origin[2]
 			}
@@ -269,11 +324,11 @@
 
 		var final_at_extend = Array.isArray(body)? body: []
 
-		if(base){
-			Constructor.prototype = Object.create(base.prototype)
+		if(baseclass){
+			Constructor.prototype = Object.create(baseclass.prototype)
 			Object.defineProperty(Constructor.prototype, 'constructor', {value:Constructor})
-			if(base.nested){
-				var nested = Object.create(base.nested)
+			if(baseclass.nested){
+				var nested = Object.create(baseclass.nested)
 				Object.defineProperty(Constructor, 'nested', {value:nested})
 				for(var name in nested){
 					// lets inherit from the baseclass
@@ -289,7 +344,7 @@
 		}})
 
 		Object.defineProperty(Constructor, 'overlay', {value:function(body){
-			return define.applyBody(body, this, base)
+			return define.applyBody(body, this, baseclass)
 		}})
 
 		if(stubbed) Object.defineProperty(Constructor, 'stubbed', {value:true})
@@ -308,10 +363,13 @@
 			if(module){
 				module.exports = Constructor
 				Object.defineProperty(Constructor, 'module', {value:module})
-				define.applyBody(body, Constructor, base, require)
+				Object.defineProperty(Constructor, 'classname', {
+					value: define.fileBase(module.filename).replace(/\./g,'_')
+				})
+				define.applyBody(body, Constructor, baseclass, require)
 			}
 			else{
-				define.applyBody(body, Constructor, base)
+				define.applyBody(body, Constructor, baseclass)
 			}
 
 			if(Constructor.prototype.atExtend) Constructor.prototype.atExtend()
@@ -332,8 +390,6 @@
 		for(var i = 0; i<map.length; i++) map[i] = map[i].toLowerCase()
 		return map
 	}
-	
-	define.local_classes = {}
 
 	define.atLookupClass = function(cls, basepath){
 		var luc = define.local_classes[cls]
@@ -392,7 +448,7 @@
 		// lets parse the named argument pattern for the body
 		moduleFactory.body = body
 		// put the baseclass on the deps
-		if(base_class) moduleFactory.deps = 'require("' + base_class + '")'
+		if(base_class) moduleFactory.depstring = 'require("' + base_class + '")'
 
 		// add automatic requires
 		if(body.argmap){
@@ -400,7 +456,7 @@
 				var arg = body.argmap[i]
 				if(!(arg in define.builtinClassArgs)){
 					var luttedclass = define.atLookupClass(arg)
-					moduleFactory.deps += 'require("' + luttedclass + '")'
+					moduleFactory.depstring += 'require("' + luttedclass + '")'
 					// the first non builtin argument is the baseclass if we dont have one
 					if(!base_class) base_class = luttedclass
 				}
@@ -421,7 +477,7 @@
 			var def = type.def
 			if(def.prim) return type
 			var tt, mt
-			for(var key in def)if(typeof def[key] !== 'string'){
+			for(var key in def) if(typeof def[key] !== 'string'){
 				mt = getStructArrayType(def[key])
 				if(mt !== tt){
 					if(tt=== undefined) tt = mt
@@ -854,7 +910,6 @@
 	}
 	else if(typeof window !== 'undefined')(function(){ // browser implementation
 		// if define was already defined use it as a config store
-		define.$root = location.origin
 		// storage structures
 		define.download_queue = {}
 		// the require function passed into the factory is local
@@ -863,7 +918,7 @@
 		// loadAsync is the resource loader
 		define.loadAsync = function(files, from_file){
 
-			function loadResource(url, from_file, recurblock){
+			function loadResource(url, from_file, recurblock, module_deps){
 
 				var ext = define.fileExt(url)
 				var abs_url, fac_url
@@ -877,6 +932,21 @@
 					if(!ext) ext = 'js', abs_url += '.'  + ext
 					fac_url = abs_url
 				}
+
+				function to_az(num){
+					var s = ''
+					while(num%26){
+						s += String.fromCharCode(num%26 +97)
+						num = Math.floor(num/26)
+					}
+					return s
+				}
+
+				if(define.reload_id) abs_url += '?' + to_az(define.reload_id)
+
+				if(module_deps && module_deps.indexOf(fac_url) === -1) module_deps.push(fac_url)
+
+				if(define.factory[fac_url]) return new Promise(function(resolve){resolve()})
 
 				var prom = define.download_queue[abs_url]
 
@@ -951,7 +1021,15 @@
 					function onLoad(){
 						// pull out the last factor
 						var factory = define.last_factory
+						//factory.fnhash = define.cheapHash(factory.toString())
+						//if(factory.body){
+						//	factory.fnhash = define.cheapHash(factory.body.toString())
+						//}
+
 						define.factory[facurl] = factory
+	
+						var module_deps = factory.deps = []
+	
 						define.last_factory = undefined
 						if(!factory) return reject("Factory is null for "+url+" from file "+from_file)
 						// parse the function for other requires
@@ -962,12 +1040,13 @@
 							if(factory.body.environment === undefined || factory.body.environment === define.$environment)
 								search += '\n' + factory.body.toString()
 						}
-						if(factory.deps) search += '\n' + factory.deps.toString()
+						if(factory.depstring) search += '\n' + factory.depstring.toString()
 
 						Promise.all(define.findRequires(search).map(function(path){
 							// Make path absolute and process variables
 							var dep_path = define.joinPath(base_path, define.expandVariables(path))
-							return loadResource(dep_path, url, true)
+
+							return loadResource(dep_path, url, true, module_deps)
 						})).then(function(){
 							resolve(factory)
 						},
@@ -1003,7 +1082,7 @@
 		// boot up using the MAIN property
 		if(define.main){
 			define.loadAsync(define.main, 'main').then(function(){
-				if(define.atMain) define.atMain(define.localRequire(''), define.main)
+				if(define.atMain) define.atMain(define.require, define.main)
 			}, function(err){
 				console.log("Error starting up " + err)
 			})
@@ -1037,9 +1116,45 @@
 
 			this.reload_socket.onmessage = function(event){
 				var msg = JSON.parse(event.data)
-				if (msg.type === 'filechange') {
-					console.clear()
-					location.href = location.href  // reload on filechange
+				if (msg.type === 'filechange'){
+					// alright so, we have to figure out 
+					// which file has changed.
+					// and either patch up classes or
+					// do a full reload.
+					// so. lets first figure out if its a class.
+					var old_module = define.module[msg.file]
+					define.reload_id++
+					if(old_module && typeof old_module.exports === 'function'){
+						// lets wipe the old module
+						define.module[msg.file] = define.factory[msg.file] = undefined
+
+						// lets require it async
+						define.require.async(msg.file).then(function(new_class){
+							// fetch all modules dependent on this class, and all dependent on those
+							// and cause them to reinitialize
+							function wipe_module(name){
+								for(var key in define.factory){
+									var deps = define.factory[key].deps
+									if(key !== name && define.module[key] && deps && deps.indexOf(name) !== -1){
+										// remove module
+										define.module[key] = undefined
+										// try to wipe all modules that depend our this one
+										wipe_module(key)
+									}
+								}							
+							}
+							wipe_module(msg.file)
+
+							// we fire atMain again
+							if(define.atMain) define.atMain(define.require, define.main)
+						})
+						// how shall we go about doing that.
+					}
+					else{
+						//alert('filechange!' + msg.file)
+						console.clear()
+						location.href = location.href  // reload on filechange
+					}
 				}
 				else if (msg.type === 'close') {
 					window.close() // close the window

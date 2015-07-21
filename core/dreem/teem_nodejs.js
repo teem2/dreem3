@@ -1,13 +1,13 @@
 // Copyright 2015 this2 LLC, MIT License (see LICENSE)
 // teem class
 
-define.class('$dreem/teem_base', function(require, exports, self, Base){
+define.class('$dreem/teem_base', function(require, exports, self, baseclass){
 
 	var Node = require('$base/node')
 	var RpcProxy = require('$rpc/rpcproxy')
 	var RpcMulti = require('$rpc/rpcmulti')
 	var RpcPromise = require('$rpc/rpcpromise')
-	var Renderer = require('$renderer/renderer')
+	var renderer = require('$renderer/renderer')
 
 	// ok now what. well we need to build our RPC interface
 	self.postAPI = function(msg, response){
@@ -23,38 +23,14 @@ define.class('$dreem/teem_base', function(require, exports, self, Base){
 		else response.send({type:'error', value:'please set type to rpcAttribute or rpcCall'})
 	}
 
-	self.atConstructor = function(modules, bus){
+	self.atConstructor = function(bus){
+
 		this.bus = bus
 		this.session = '' + Math.random() * 10000000
-		var renderer = new Renderer()
+		this.connected_screens = {}
 
 		define.$rendermode = 'headless'
 
-		// lets spawn up all modules!
-		for(var i = 0; i < modules.length; i++){
-			// lets instance all modules
-			var module = modules[i]
-			try{
-				// lets store the modules
-				var render = require(module.path)
-				// lets call our constructor with our lisp arguments
-				obj = this[module.name] = render()
-				// lets initialize propertybindings
-				// bus bind our attributes
-				obj.emit('init')
-				RpcProxy.bindSetAttribute(obj, module.name, bus)
-			}
-			catch(e){
-				console.error(e.stack + '\x0E')
-				return
-			}
-		}
-		// initialize serverside property binding
-		for(var i = 0; i < modules.length; i++){
-			var module = modules[i]
-			//renderer.propertyBind(this[module.name], {this:this})
-		}
-		
 		bus.broadcast({type:'sessionCheck', session:this.session})
 
 		bus.atConnect = function(socket){
@@ -63,27 +39,23 @@ define.class('$dreem/teem_base', function(require, exports, self, Base){
 
 		bus.atMessage = function(msg, socket){
 			// we will get messages from the clients
-			if(msg.type == 'connectBrowser'){
-
-				// lets process the entire this object for RPC interfaces
-				var rpcdefs = RpcProxy.createRpcDefs(this, Node)
-				// ok so lets op a webrtc components
-				//console.log(rpcdefs)
-				if(this.screens){
-					var screen_name = socket.url.split('/')[2] || 'browser'
-					// instance a screen rpc interface
-					var rpcid = 'screens.' + screen_name
-					var multi = this.screens[screen_name]
-					var index = multi.length++
-					multi.createIndex(index, rpcid, socket.rpcpromise)
-					socket.send({type:'connectBrowserOK', rpcdef: rpcdefs, index:index})
-					socket.rpcpromise = new RpcPromise(socket)
-					this.bus.broadcast({
-						index: index,
-						type: 'join',
-						rpcid: rpcid
-					})
+			if(msg.type == 'connectScreen'){
+				// lets add ourselves
+				var arr = this.connected_screens[msg.name] || (this.connected_screens[msg.name] = [])
+				var index = arr.push(socket) - 1
+				
+				// now lets send all the connected screens to the new one			
+				for(var scr in this.connected_screens){
+					var arr = this.connected_screens[scr]
+					for(var i = 0; i < arr.length; i++){
+						socket.send({type:'connectScreen', name:scr, index:i})
+					}
 				}
+				// lets let everyone know a new screen joined
+				this.bus.broadcast({type:'connectScreen', name:msg.name, index:index}, socket)
+
+				// and send the OK back to the screen
+				socket.send({type:'connectScreenOK', index:index})
 			}
 			else if(msg.type == 'attribute'){
 				// ok so if we get a setattribute, what we need is to forward it to all clients, not us

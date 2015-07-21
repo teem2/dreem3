@@ -1,7 +1,7 @@
 // Copyright 2015 Teem2 LLC, MIT License (see LICENSE)
 // Sprite class
 
-define.class('./sprite_gl', function(require, exports, self, base){	
+define.class('./sprite_gl', function(require, exports, self){	
 	var GLText = require('$gl/gltext')
 	
 	self.attribute('text', {type:String, value: "HELLO" })

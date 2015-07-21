@@ -30,6 +30,8 @@ define.class('$base/nodeworker', function(require, exports, self){
 		return value
 	}
 
+	self.attribute("w", {storage:'size', index:0, parser:percentParser})
+	self.attribute("h", {storage:'size', index:1, parser:percentParser})
 	self.attribute("width", {storage:'size', index:0, parser:percentParser})
 	self.attribute("height", {storage:'size', index:1, parser:percentParser})
 

@@ -1,6 +1,6 @@
 // Copyright 2015 Teem2 LLC, MIT License (see LICENSE)
 
-define.class('$parsers/onejsgen', function(require, exports, self, base){
+define.class('$parsers/onejsgen', function(require, exports, self, baseclass){
 
 	var gltypes = require('$gl/gltypes')
 	var OneJSParser =  require('$parsers/onejsparser')
@@ -512,7 +512,7 @@ define.class('$parsers/onejsgen', function(require, exports, self, base){
 
 	self.Condition = function(node, parent, state){
 		
-		var ret = base.prototype.Condition.call(this, node, parent, state)
+		var ret = baseclass.prototype.Condition.call(this, node, parent, state)
 
 		// lets compare the types of 
 		var then_t = node.then.infer
@@ -546,7 +546,7 @@ define.class('$parsers/onejsgen', function(require, exports, self, base){
 
 	self.Logic = function(node, parent, state){
 		// return type boolean
-		var ret = base.prototype.Logic.call(this, node, parent, state)
+		var ret = baseclass.prototype.Logic.call(this, node, parent, state)
 		node.infer = boolean
 		return ret
 	}

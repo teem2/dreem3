@@ -1,7 +1,7 @@
 // Copyright 2015 Teem2 LLC, MIT License (see LICENSE)
 // Sprite class
 
-define.class('./screen_base', function (require, exports, self) {
+define.class('./screen_base', function (require, exports, self, baseclass) {
 	var GLDevice = require('$gl/gldevice')
 	var GLShader = require('$gl/glshader')
 	var GLTexture = require('$gl/gltexture')
@@ -14,7 +14,7 @@ define.class('./screen_base', function (require, exports, self) {
 	//self.attribute('moved', {type:boolean, value : true});
 
 	self.dirty = true
-
+ 
 	self.atConstructor = function () {}
 
 	self.render = function(){
@@ -23,7 +23,7 @@ define.class('./screen_base', function (require, exports, self) {
 
 	self.renderstate = new RenderState();
 
-	self.debug = false
+	self.debug = true
 
 	self.lastx = -1;
 	self.lasty = -1;
@@ -240,7 +240,9 @@ define.class('./screen_base', function (require, exports, self) {
 			this.drawColor();
 		}
 
-		if(anim || this.hasListeners('time')) this.device.redraw()
+		if(anim || this.hasListeners('time')){
+			this.device.redraw()
+		}
 		//console.log(this.draw_calls, Date.now() - delta)
 	}
 
@@ -266,23 +268,26 @@ define.class('./screen_base', function (require, exports, self) {
 		}
 	}
 
-	self.init = function (parent) {
-		this.pic_tex = GLTexture.rgba_depth_stencil(16, 16)
-		this.debug_tex = GLTexture.rgba_depth_stencil(16, 16)
+	self.diff = function(other){
+		// if we diff well get a complete new one..
+		baseclass.prototype.diff(other)
+		// alright now lets copy over the settings
+		this._init = 1
 
-		this.readGuidTimeout = this.readGuidTimeout.bind(this)
-		this.effectiveguid = 0;
-		this.buf = new Uint8Array(4);
-		this.screen.guidmap = {};
-		this.screen.guidmap[0] = this;
-		this.screen.mousecapture = false;
-		this.screen.mousecapturecount = false;
-		this.screen.lastmouseguid = 0;
-		this.lastidundermouse = 0;
+		this.pic_tex = other.pic_tex
+		this.debug_tex = other.debug_tex
+		this.device = other.device
+		this.buf = other.buf
 
-		this.screen.mouse.move = function () {
-			if (this.screen.mousecapture){
-				this.setguid (this.screen.lastmouseguid);
+		this.initVars()
+		this.bindCalls()
+		return this
+	}
+
+	self.bindCalls = function(){
+		this.mouse.atMove = function () {
+			if (this.mousecapture){
+				this.setguid (this.lastmouseguid);
 			}
 			else{
 				this.moved = true;
@@ -292,37 +297,59 @@ define.class('./screen_base', function (require, exports, self) {
 			}
 		}.bind(this)
 
-		this.screen.mouse.isdown = function () {
-			if (this.screen.mouse.isdown === 1) {
-				if (this.screen.mousecapture === false) {
-					this.screen.mousecapture = this.screen.lastmouseguid;
-					this.screen.mousecapturecount = 1;
+		this.mouse.atIsdown = function () {
+			if (this.mouse.isdown === 1) {
+				if (this.mousecapture === false) {
+					this.mousecapture = this.lastmouseguid;
+					this.mousecapturecount = 1;
 				} 
 				else {
-					this.screen.mousecapturecount++;
+					this.mousecapturecount++;
 				}
 
-				this.screen.guidmap[this.screen.lastmouseguid].emit('mousedown')
+				this.guidmap[this.lastmouseguid].emit('mousedown')
 			} 
 			else {
-				if (this.screen.mouse.isdown === 0) {
-					this.screen.mousecapturecount--;
-					this.screen.guidmap[this.screen.lastmouseguid].emit('mouseup')
-					if (this.screen.mousecapturecount === 0) {
-						this.screen.mousecapture = false;
+				if (this.mouse.isdown === 0) {
+					this.mousecapturecount--;
+					this.guidmap[this.lastmouseguid].emit('mouseup')
+					if (this.mousecapturecount === 0) {
+						this.mousecapture = false;
 						this.setguid(this.lastidundermouse);
 					}
 				}
 			}
 		}.bind(this)
 
-		this.screen.mouse.click = function () {
+		this.mouse.atClick = function () {
 			this.click();
 		}.bind(this)
 
-		this.device = new GLDevice()
 		this.device.atRedraw = function (time) {
 			this.draw(time / 1000.)
 		}.bind(this)
+	}
+
+	self.initVars = function(){
+		this.guidmap = {};
+		this.guidmap[0] = this;
+		this.mousecapture = false;
+		this.mousecapturecount = false;
+		this.lastmouseguid = 0;
+		this.lastidundermouse = 0;
+		this.effectiveguid = 0;
+		this.readGuidTimeout = this.readGuidTimeout.bind(this)
+	}
+
+	self.init = function (parent) {
+
+		this.pic_tex = GLTexture.rgba_depth_stencil(16, 16)
+		this.debug_tex = GLTexture.rgba_depth_stencil(16, 16)
+		this.buf = new Uint8Array(4);
+		this.device = new GLDevice()
+
+		this.initVars()
+
+		this.bindCalls()
 	}
 })
